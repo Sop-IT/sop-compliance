@@ -5,11 +5,12 @@ from dcim.models import Location, Device, Site, SiteGroup, Region, Rack, Device
 from ipam.models import Prefix
 from django.db.models import Q
 import re
-from sop_infra.utils.sop_utils import CheckResult, CheckResultList, ValidatorCheckResultLogger
+from sop_compliance.report_loggers import CheckResult, CheckResultList, ValidatorCheckResultLogger
 from sop_infra.utils.meraki_objects import MerakiConstants
 from extras.choices import LogLevelChoices
-from sop_infra.utils.sop_utils import *
-from sop_infra.utils.netbox_utils import *
+from sop_infra.utils.netbox_utils import SopInfraUtils, SopInfraConstants
+from sop_utils.misc import SopUtils
+
 
 locations_ignored_by_status = ['planned', 'retired']
 devices_ignored_by_status = ['planned', 'inventory', 'offline']
@@ -71,7 +72,7 @@ class OrgRules:
 
     @staticmethod
     def check_one_sdwanslave_is_empty(site:Site, crl:CheckResultList):
-        if NetboxUtils.get_sopinfra_site_master_site_id(site) is None:
+        if SopInfraUtils.get_sopinfra_site_master_site_id(site) is None:
             return
         if site.devices.first() or site.racks.first() or site.locations.first() or site.prefixes.first():
             crl.append(CheckResult(LogLevelChoices.LOG_FAILURE, site, f"{site.group.name}:{site.name} : this site is an SDWAN slave but it's not empty !"))
@@ -208,10 +209,10 @@ class SiteValidator(CustomValidator):
     staff_status = ('dc', 'template', 'inventory', 'teleworker', 'test-poc', 'reserved')
 
 
-    def validate(self, site, request):
+    def validate(self, instance, request):
 
         crl=CheckResultList()
-        
+        site:Site=instance
         if site.description=="debug":
             site.comments=f"{site.tags.slugs()} - DEBUG : {site.status} -- {site.physical_address} -- {vars(site)} "
         if site.description=="debugstop":
@@ -234,7 +235,7 @@ class SiteValidator(CustomValidator):
 
         # Workflow checks
         staff=SopUtils.is_staff_user(request)
-        pre_status=None
+        pre_status:str|None=None
         if  site.pk is not None and hasattr(site, '_prechange_snapshot'):
             pre_status=site._prechange_snapshot.get('status')
         self.wf_validate_status_change(staff, pre_status, site.status, site, failprefix)
@@ -265,7 +266,7 @@ class SiteValidator(CustomValidator):
                 self.fail(f"{failprefix}Status '{site.status}' mandates a group definition", field='group')
             if SiteGroup.objects.filter(parent=site.group).count()>0 :
                 self.fail(f"{failprefix}Only leaf groups are allowed", field='group')
-            if site.group.get_root().id!=NetboxConstants.spokes_root_id:
+            if site.group.get_root().id!=SopInfraConstants.spokes_root_id:
                 self.fail(f"{failprefix}Status '{site.status}' needs a spoke site group", field='group') 
 
         # Check address / latitude / longitude compliance
@@ -290,7 +291,7 @@ class SiteValidator(CustomValidator):
             pass
 
         # Enforce slave site constraints
-        elif NetboxUtils.get_sopinfra_site_master_site_id(site) is not None :    
+        elif SopInfraUtils.get_sopinfra_site_master_site_id(site) is not None :    
             # Resets some fields
             site.custom_field_data['sharepoint_subdir'] = None
 
@@ -305,7 +306,7 @@ class SiteValidator(CustomValidator):
         crl.dump_to(ValidatorCheckResultLogger(self, failprefix))
         
 
-    def wf_validate_status_change(self, is_staff:bool, prev:str, new:str, site:Site, failprefix:str):
+    def wf_validate_status_change(self, is_staff:bool, prev:str|None, new:str|None, site:Site, failprefix:str):
         if new is None or new.strip()=="":
             self.fail(f"{failprefix} validator bug : new status is empty", field='status')
             return

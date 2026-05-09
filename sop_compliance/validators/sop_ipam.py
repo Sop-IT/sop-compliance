@@ -1,9 +1,9 @@
 from extras.validators import CustomValidator
 from extras.choices import LogLevelChoices
 from ipam.models import IPAddress, Prefix
-from sop_infra.utils.sop_utils import CheckResult, CheckResultList, SopRegExps, ValidatorCheckResultLogger
-from sop_infra.utils.netbox_utils import NetboxConstants
-
+from sop_compliance.report_loggers import CheckResult, CheckResultList, ValidatorCheckResultLogger
+from sop_utils.regexps import SopRegExps
+from sop_infra.utils.netbox_utils import SopInfraConstants
 
 class IpamRules():
 
@@ -69,11 +69,11 @@ class IpamRules():
             pass
         elif prefix.tenant is None :
             crl.append(CheckResult(LogLevelChoices.LOG_FAILURE, prefix, f"{prefix} : this prefix is missing a valid tenant !", "tenant"))
-        elif prefix.tenant.id == NetboxConstants.sopit_id:
+        elif prefix.tenant.id == SopInfraConstants.sopit_id:
             pass
         elif prefix.scope is None:
             crl.append(CheckResult(LogLevelChoices.LOG_FAILURE, prefix, f"{prefix.tenant.group.name}:{prefix} : this prefix is missing a valid scope !", "scope"))
-        elif prefix.scope.tenant is not None and prefix.scope.tenant.id == NetboxConstants.sopit_id:
+        elif prefix.scope.tenant is not None and prefix.scope.tenant.id == SopInfraConstants.sopit_id:
             pass
         elif prefix.tenant.pk != prefix.scope.tenant.pk:
             crl.append(CheckResult(LogLevelChoices.LOG_FAILURE, prefix, f"{prefix.scope.group.name}:{prefix} : this prefix tenant is not the same as that of its scope {prefix.scope}", "tenant"))    

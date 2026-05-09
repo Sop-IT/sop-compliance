@@ -1,12 +1,19 @@
 import re
 
-from dcim.models import Location, Rack
-from sop_infra.utils.netbox_utils import NetboxUtils
-from sop_infra.utils.sop_utils import *
+from django.contrib.contenttypes.models import ContentType
 
-from dcim.models import Location, Rack
 from extras.models import ImageAttachment
+from extras.choices import LogLevelChoices
 
+from extras.choices import LogLevelChoices
+
+from extras.validators import CustomValidator
+
+from dcim.models import Site, Location, Rack
+from utilities.permissions import get_permission_for_model
+from sop_compliance.report_loggers import CheckResult, CheckResultList
+from sop_infra.utils.netbox_utils import SopInfraUtils
+from sop_utils.regexps import SopRegExps
 
 class ExtraRules():
 
@@ -26,11 +33,11 @@ class ExtraRules():
         if site.status in ['reserved', 'candidate', 'no_infra', 'dc', 'template', 'inventory', 'teleworker', 'test-poc', 'retired']:
             return
         cnt=ImageAttachment.objects.filter(object_type_id=ExtraRules.Constants.ctype_site)\
-            .filter(object_id=site.id).filter(name__regex=ExtraRules.RegExps.google_image_str).count()
+            .filter(object_id=site.pk).filter(name__regex=ExtraRules.RegExps.google_image_str).count()
         target_cnt=1
-        if NetboxUtils.get_sopinfra_site_master_site_id(site) is not None:
+        if SopInfraUtils.get_sopinfra_site_master_site_id(site) is not None:
             target_cnt=0
-            crl.append(CheckResult(LogLevelChoices.LOG_DEBUG, site, f"{site.group.name}:{site.name} : sdwan master site detected : {NetboxUtils.get_sopinfra_site_master_site_id(site)}"))
+            crl.append(CheckResult(LogLevelChoices.LOG_DEBUG, site, f"{site.group.name}:{site.name} : sdwan master site detected : {SopInfraUtils.get_sopinfra_site_master_site_id(site)}"))
         if cnt<target_cnt:
             crl.append(CheckResult(LogLevelChoices.LOG_FAILURE, site, f"{site.group.name}:{site.name} : this site is missing a proper GOOGLE map !"))
         elif cnt>target_cnt:
@@ -45,7 +52,7 @@ class ExtraRules():
         if location.status in [ 'retired']:
             return
         cnt=ImageAttachment.objects.filter(object_type_id=ExtraRules.Constants.ctype_location)\
-            .filter(object_id=location.id).filter(name__regex=ExtraRules.RegExps.google_image_str).count()
+            .filter(object_id=location.pk).filter(name__regex=ExtraRules.RegExps.google_image_str).count()
         if cnt==0:
             crl.append(CheckResult(LogLevelChoices.LOG_FAILURE, location, f"{location.site.group.name}:{location.name} : this location is missing a proper GOOGLE map !"))
         elif cnt>1:
@@ -60,7 +67,7 @@ class ExtraRules():
         if rack.status in [ 'retired']:
             return
         cnt=ImageAttachment.objects.filter(object_type_id=ExtraRules.Constants.ctype_rack)\
-            .filter(object_id=rack.id).filter(name__regex=ExtraRules.RegExps.rack_image_str).count()
+            .filter(object_id=rack.pk).filter(name__regex=ExtraRules.RegExps.rack_image_str).count()
         if cnt==0:
             crl.append(CheckResult(LogLevelChoices.LOG_FAILURE, rack, f"{rack.site.group.name}:{rack.name} : this rack is missing images !"))
     @staticmethod
@@ -75,15 +82,15 @@ class ImageAttachmentValidator(CustomValidator):
 
 
     def validate(self, instance:ImageAttachment, request):
-        if instance.object_type_id == ContentType.objects.get_by_natural_key('dcim', 'site').pk:
+        if instance.object_type.pk == ContentType.objects.get_by_natural_key('dcim', 'site').pk:
             # Sites
             if not ExtraRules.RegExps.google_image_re.match(instance.name):
                 self.fail(f'Icorrect name {instance.name}, must match "{ExtraRules.RegExps.google_image_re.pattern}" !', field='name')
-        elif instance.object_type_id == ContentType.objects.get_by_natural_key('dcim', 'location').pk:
+        elif instance.object_type.pk == ContentType.objects.get_by_natural_key('dcim', 'location').pk:
             # Locations
             if not ExtraRules.RegExps.google_image_re.match(instance.name):
                 self.fail(f'Icorrect name {instance.name}, must match "{ExtraRules.RegExps.google_image_re.pattern}" !', field='name')
-        elif instance.object_type_id == ContentType.objects.get_by_natural_key('dcim', 'rack').pk:
+        elif instance.object_type.pk == ContentType.objects.get_by_natural_key('dcim', 'rack').pk:
             # Racks
             if not ExtraRules.RegExps.rack_image_re.match(instance.name):
                 self.fail(f'Icorrect name {instance.name}, must match "{ExtraRules.RegExps.rack_image_re.pattern}" !', field='name')

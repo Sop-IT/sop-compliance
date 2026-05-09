@@ -6,8 +6,8 @@ from extras.choices import LogLevelChoices
 from extras.validators import CustomValidator
 from tenancy.models import Tenant
 
-from sop_infra.utils.sop_utils import CheckResult, CheckResultList, ValidatorCheckResultLogger
-from sop_infra.utils.sop_utils import SopRegExps
+from sop_compliance.report_loggers import CheckResult, CheckResultList, ValidatorCheckResultLogger
+from sop_utils.regexps import SopRegExps
 
 
 class ContactRules():
