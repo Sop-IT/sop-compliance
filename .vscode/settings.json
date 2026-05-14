@@ -1,22 +1,21 @@
 {
-		"python.autoComplete.extraPaths": [
-			"/home/abrand/sopwork/netbox/netbox", 
-			"/home/abrand/sopwork/sop-infra",
-			"/home/abrand/sopwork/sop-voice",
-			"/home/abrand/sopwork/sop-utils",
-			"/home/abrand/sopwork/sop-compliance",
-			"/home/abrand/sopwork/sop-scm",
-			"/home/abrand/sopwork/sop-meraki",
-			"/home/abrand/sopwork/netbox-scripts",
-		],
-    	"python.analysis.extraPaths": [ 	
-			"/home/abrand/sopwork/netbox/netbox", 
-			"/home/abrand/sopwork/sop-infra",
-			"/home/abrand/sopwork/sop-voice",
-			"/home/abrand/sopwork/sop-utils",
-			"/home/abrand/sopwork/sop-compliance",
-			"/home/abrand/sopwork/sop-scm",
-			"/home/abrand/sopwork/sop-meraki",
-			"/home/abrand/sopwork/netbox-scripts",
-    	],
+    "python-envs.pythonProjects": [
+        {
+            "path": ".",
+            "envManager": "ms-python.python:venv",
+            "packageManager": "ms-python.python:pip"
+        }
+    ],
+    "python.autoComplete.extraPaths": [
+        "../netbox/netbox", 
+        "../sop-utils",
+        "../sop-infra",
+        "../sop-voice",
+    ],
+    "python.analysis.extraPaths": [ 	
+        "../netbox/netbox", 
+        "../sop-utils",
+        "../sop-infra",
+        "../sop-voice",
+    ],
 }
