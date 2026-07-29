@@ -45,6 +45,8 @@ class DeviceRules:
             
     @staticmethod
     def check_one_device_status(device:Device, crl:CheckResultList):
+        if device.status in devices_ignored_by_status:
+            return
         if device.site.status in [ 'retired']:
             crl.append(CheckResult(LogLevelChoices.LOG_FAILURE, device,
                                    f"{device.site.group.name}:{device.name} : cannot have devices on \"{device.site.status}\" sites !", "site"))
