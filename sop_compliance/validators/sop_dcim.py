@@ -268,7 +268,8 @@ class SiteValidator(CustomValidator):
                 self.fail(f"{failprefix}Status '{site.status}' mandates a group definition", field='group')
             if SiteGroup.objects.filter(parent=site.group).count()>0 :
                 self.fail(f"{failprefix}Only leaf groups are allowed", field='group')
-            if site.group.get_root().id!=SopInfraConstants.spokes_root_id:
+            roots=[ x for x in site.group.get_ancestors() if x.level==0 ]
+            if len(roots)==0 or roots[0].id!=SopInfraConstants.spokes_root_id:
                 self.fail(f"{failprefix}Status '{site.status}' needs a spoke site group", field='group') 
 
         # Check address / latitude / longitude compliance
